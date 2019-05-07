@@ -2,7 +2,7 @@
     "name": "blesta/widepay",
     "description": "Widepay",
     "license": "proprietary",
-    "type": "blesta-gateway-merchant",
+    "type": "blesta-gateway-nonmerchant",
     "require": {
         "blesta/composer-installer": "~1.0"
     }

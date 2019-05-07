@@ -10,7 +10,7 @@
  * @license http://www.blesta.com/license/ The Blesta License Agreement
  * @link http://www.blesta.com/ Blesta
  */
-class Widepay extends MerchantGateway implements MerchantCc, MerchantCcOffsite
+class Widepay extends NonmerchantGateway
 {
     /**
      * @var array An array of meta data for this gateway
@@ -109,29 +109,6 @@ class Widepay extends MerchantGateway implements MerchantCc, MerchantCcOffsite
     }
 
     /**
-     * Used to determine whether this gateway can be configured for autodebiting accounts
-     *
-     * @return bool True if the customer must be present (e.g. in the case of credit card
-     *  customer must enter security code), false otherwise
-     */
-    public function requiresCustomerPresent()
-    {
-        return false; // TODO double check this value
-    }
-
-    /**
-     * Informs the system of whether or not this gateway is configured for offsite customer
-     * information storage for credit card payments
-     *
-     * @return bool True if the gateway expects the offset methods to be called for credit card payments,
-     *  false to process the normal methods instead
-     */
-    public function requiresCcStorage()
-    {
-        return true; // TODO determine what this value should be
-    }
-
-    /**
      * Sets the currency code to be used for all subsequent payments
      *
      * @param string $currency The ISO 4217 currency code to be used for subsequent payments
@@ -141,402 +118,23 @@ class Widepay extends MerchantGateway implements MerchantCc, MerchantCcOffsite
         $this->currency = $currency;
     }
 
+
     /**
-     * Store a credit card off site
+     * Returns all HTML markup required to render an authorization and capture payment form.
      *
-     * @param array $card_info An array of card info to store off site including:
-     *  - first_name The first name on the card
-     *  - last_name The last name on the card
-     *  - card_number The card number
-     *  - card_exp The card expiration date
-     *  - card_security_code The 3 or 4 digit security code of the card (if available)
-     *  - address1 The address 1 line of the card holder
-     *  - address2 The address 2 line of the card holder
-     *  - city The city of the card holder
-     *  - state An array of state info including:
-     *      - code The 2 or 3-character state code
-     *      - name The local name of the country
-     *  - country An array of country info including:
-     *      - alpha2 The 2-character country code
-     *      - alpha3 The 3-character country code
-     *      - name The english name of the country
-     *      - alt_name The local name of the country
-     *  - zip The zip/postal code of the card holder
-     * @param array $contact An array of contact information for the billing contact this
-     *  account is to be set up under including:
-     *  - id The ID of the contact
-     *  - client_id The ID of the client this contact resides under
-     *  - user_id The ID of the user this contact represents
-     *  - contact_type The contact type
-     *  - contact_type_id The reference ID for this custom contact type
-     *  - contact_type_name The name of the contact type
-     *  - first_name The first name of the contact
-     *  - last_name The last name of the contact
+     * @param array $contact_info An array of contact info including:
+     *  - id The contact ID
+     *  - client_id The ID of the client this contact belongs to
+     *  - user_id The user ID this contact belongs to (if any)
+     *  - contact_type The type of contact
+     *  - contact_type_id The ID of the contact type
+     *  - first_name The first name on the contact
+     *  - last_name The last name on the contact
      *  - title The title of the contact
      *  - company The company name of the contact
-     *  - email The email address of the contact
-     *  - address1 The address of the contact
-     *  - address2 The address line 2 of the contact
+     *  - address1 The address 1 line of the contact
+     *  - address2 The address 2 line of the contact
      *  - city The city of the contact
-     *  - state An array of state info including:
-     *      - code The 2 or 3-character state code
-     *      - name The local name of the country
-     *  - country An array of country info including:
-     *      - alpha2 The 2-character country code
-     *      - alpha3 The 3-character country code
-     *      - name The english name of the country
-     *      - alt_name The local name of the country
-     *  - zip The zip/postal code of the contact
-     *  - date_added The date/time the contact was added
-     * @param string $client_reference_id The reference ID for the client on the remote gateway (if one exists)
-     * @return mixed False on failure or an array containing:
-     *  - client_reference_id The reference ID for this client
-     *  - reference_id The reference ID for this payment account
-     */
-    public function storeCc(array $card_info, array $contact, $client_reference_id = null)
-    {
-        $api = $this->getApi();
-        $response = $api->setupCard([]);
-//        var_dump($contact, $response);
-        die;
-        return [
-            'client_reference_id' => $response['profile_id'],
-            'reference_id' => $response['payment_profile_id']
-        ];
-    }
-
-    /**
-     * Update a credit card stored off site
-     *
-     * @param array $card_info An array of card info to store off site including:
-     *  - first_name The first name on the card
-     *  - last_name The last name on the card
-     *  - card_number The card number
-     *  - card_exp The card expiration date
-     *  - card_security_code The 3 or 4 digit security code of the card (if available)
-     *  - address1 The address 1 line of the card holder
-     *  - address2 The address 2 line of the card holder
-     *  - city The city of the card holder
-     *  - state An array of state info including:
-     *      - code The 2 or 3-character state code
-     *      - name The local name of the country
-     *  - country An array of country info including:
-     *      - alpha2 The 2-character country code
-     *      - alpha3 The 3-character country code
-     *      - name The english name of the country
-     *      - alt_name The local name of the country
-     *  - zip The zip/postal code of the card holder
-     *  - account_changed True if the account details (bank account or card number, etc.)
-     *  have been updated, false otherwise
-     * @param array $contact An array of contact information for the billing contact this
-     *  account is to be set up under including:
-     *  - id The ID of the contact
-     *  - client_id The ID of the client this contact resides under
-     *  - user_id The ID of the user this contact represents
-     *  - contact_type The contact type
-     *  - contact_type_id The reference ID for this custom contact type
-     *  - contact_type_name The name of the contact type
-     *  - first_name The first name of the contact
-     *  - last_name The last name of the contact
-     *  - title The title of the contact
-     *  - company The company name of the contact
-     *  - email The email address of the contact
-     *  - address1 The address of the contact
-     *  - address2 The address line 2 of the contact
-     *  - city The city of the contact
-     *  - state An array of state info including:
-     *      - code The 2 or 3-character state code
-     *      - name The local name of the country
-     *  - country An array of country info including:
-     *      - alpha2 The 2-character country code
-     *      - alpha3 The 3-character country code
-     *      - name The english name of the country
-     *      - alt_name The local name of the country
-     *  - zip The zip/postal code of the contact
-     *  - date_added The date/time the contact was added
-     * @param string $client_reference_id The reference ID for the client on the remote gateway
-     * @param string $account_reference_id The reference ID for the stored account on the remote gateway to update
-     * @return mixed False on failure or an array containing:
-     *  - client_reference_id The reference ID for this client
-     *  - reference_id The reference ID for this payment account
-     */
-    public function updateCc(array $card_info, array $contact, $client_reference_id, $account_reference_id)
-    {
-        return [
-            'client_reference_id' => $this->ifSet($response['profile_id']),
-            'reference_id' => $this->ifSet($response['payment_profile_id'])
-        ];
-    }
-
-    /**
-     * Remove a credit card stored off site
-     *
-     * @param string $client_reference_id The reference ID for the client on the remote gateway
-     * @param string $account_reference_id The reference ID for the stored account on the remote gateway to remove
-     * @return array An array containing:
-     *  - client_reference_id The reference ID for this client
-     *  - reference_id The reference ID for this payment account
-     */
-    public function removeCc($client_reference_id, $account_reference_id)
-    {
-        return [
-            'client_reference_id' => $this->ifSet($response['profile_id']),
-            'reference_id' => $this->ifSet($response['payment_profile_id'])
-        ];
-    }
-
-    /**
-     * Charge a credit card stored off site
-     *
-     * @param string $client_reference_id The reference ID for the client on the remote gateway
-     * @param string $account_reference_id The reference ID for the stored account on the remote gateway to update
-     * @param float $amount The amount to process
-     * @param array $invoice_amounts An array of invoices, each containing:
-     *  - id The ID of the invoice being processed
-     *  - amount The amount being processed for this invoice (which is included in $amount)
-     * @return array An array of transaction data including:
-     *  - status The status of the transaction (approved, declined, void, pending, reconciled, refunded, returned)
-     *  - reference_id The reference ID for gateway-only use with this transaction (optional)
-     *  - transaction_id The ID returned by the remote gateway to identify this transaction
-     *  - message The message to be displayed in the interface in addition to the standard
-     *      message for this transaction status (optional)
-     */
-    public function processStoredCc($client_reference_id, $account_reference_id, $amount, array $invoice_amounts = null)
-    {
-        return [
-            'status' => $status,
-            'reference_id' => substr($this->ifSet($response['x_last4']), -4),
-            'transaction_id' => $this->ifSet($response['x_trans_id']),
-            'message' => $this->ifSet($response['x_response_reason_text'])
-        ];
-    }
-
-    /**
-     * Authorizees a credit card stored off site
-     *
-     * @param string $client_reference_id The reference ID for the client on the remote gateway
-     * @param string $account_reference_id The reference ID for the stored account on the remote gateway to update
-     * @param float $amount The amount to authorize
-     * @param array $invoice_amounts An array of invoices, each containing:
-     *  - id The ID of the invoice being processed
-     *  - amount The amount being processed for this invoice (which is included in $amount)
-     * @return array An array of transaction data including:
-     *  - status The status of the transaction (approved, declined, void, pending, reconciled, refunded, returned)
-     *  - reference_id The reference ID for gateway-only use with this transaction (optional)
-     *  - transaction_id The ID returned by the remote gateway to identify this transaction
-     *  - message The message to be displayed in the interface in addition to the standard
-     *      message for this transaction status (optional)
-     */
-    public function authorizeStoredCc(
-        $client_reference_id,
-        $account_reference_id,
-        $amount,
-        array $invoice_amounts = null
-    ) {
-        return [
-            'status' => $status,
-            'reference_id' => substr($this->ifSet($response['x_last4']), -4),
-            'transaction_id' => $this->ifSet($response['x_trans_id']),
-            'message' => $this->ifSet($response['x_response_reason_text'])
-        ];
-    }
-
-    /**
-     * Charge a previously authorized credit card stored off site
-     *
-     * @param string $client_reference_id The reference ID for the client on the remote gateway
-     * @param string $account_reference_id The reference ID for the stored account on the remote gateway to update
-     * @param string $transaction_reference_id The reference ID for the previously authorized transaction
-     * @param string $transaction_id The ID of the previously authorized transaction
-     * @param float $amount The amount to capture
-     * @param array $invoice_amounts An array of invoices, each containing:
-     *  - id The ID of the invoice being processed
-     *  - amount The amount being processed for this invoice (which is included in $amount)
-     * @return array An array of transaction data including:
-     *  - status The status of the transaction (approved, declined, void, pending, reconciled, refunded, returned)
-     *  - reference_id The reference ID for gateway-only use with this transaction (optional)
-     *  - transaction_id The ID returned by the remote gateway to identify this transaction
-     *  - message The message to be displayed in the interface in addition to the standard
-     *      message for this transaction status (optional)
-     */
-    public function captureStoredCc(
-        $client_reference_id,
-        $account_reference_id,
-        $transaction_reference_id,
-        $transaction_id,
-        $amount,
-        array $invoice_amounts = null
-    ) {
-        return [
-            'status' => $status,
-            'reference_id' => substr($this->ifSet($response['x_last4']), -4),
-            'transaction_id' => $this->ifSet($response['x_trans_id']),
-            'message' => $this->ifSet($response['x_response_reason_text'])
-        ];
-    }
-
-    /**
-     * Void an off site credit card charge
-     *
-     * @param string $client_reference_id The reference ID for the client on the remote gateway
-     * @param string $account_reference_id The reference ID for the stored account on the remote gateway to update
-     * @param string $transaction_reference_id The reference ID for the previously authorized transaction
-     * @param string $transaction_id The ID of the previously authorized transaction
-     * @return array An array of transaction data including:
-     *  - status The status of the transaction (approved, declined, void, pending, reconciled, refunded, returned)
-     *  - reference_id The reference ID for gateway-only use with this transaction (optional)
-     *  - transaction_id The ID returned by the remote gateway to identify this transaction
-     *  - message The message to be displayed in the interface in addition to the standard message for
-     *      this transaction status (optional)
-     */
-    public function voidStoredCc(
-        $client_reference_id,
-        $account_reference_id,
-        $transaction_reference_id,
-        $transaction_id
-    ) {
-        return [
-            'status' => $status,
-            'reference_id' => substr($this->ifSet($response['x_last4']), -4),
-            'transaction_id' => $this->ifSet($response['x_trans_id']),
-            'message' => $this->ifSet($response['x_response_reason_text'])
-        ];
-    }
-
-    /**
-     * Refund an off site credit card charge
-     *
-     * @param string $client_reference_id The reference ID for the client on the remote gateway
-     * @param string $account_reference_id The reference ID for the stored account on the remote gateway to update
-     * @param string $transaction_reference_id The reference ID for the previously authorized transaction
-     * @param string $transaction_id The ID of the previously authorized transaction
-     * @param float $amount The amount to refund
-     * @return array An array of transaction data including:
-     *  - status The status of the transaction (approved, declined, void, pending, reconciled, refunded, returned)
-     *  - reference_id The reference ID for gateway-only use with this transaction (optional)
-     *  - transaction_id The ID returned by the remote gateway to identify this transaction
-     *  - message The message to be displayed in the interface in addition to the standard message
-     *      for this transaction status (optional)
-     */
-    public function refundStoredCc(
-        $client_reference_id,
-        $account_reference_id,
-        $transaction_reference_id,
-        $transaction_id,
-        $amount
-    ) {
-        return [
-            'status' => $status,
-            'reference_id' => substr($this->ifSet($response['x_last4']), -4),
-            'transaction_id' => $this->ifSet($response['x_trans_id']),
-            'message' => $this->ifSet($response['x_response_reason_text'])
-        ];
-    }
-
-    /**
-     * Charge a credit card
-     *
-     * @param array $card_info An array of credit card info including:
-     *  - first_name The first name on the card
-     *  - last_name The last name on the card
-     *  - card_number The card number
-     *  - card_exp The card expiration date
-     *  - card_security_code The 3 or 4 digit security code of the card (if available)
-     *  - address1 The address 1 line of the card holder
-     *  - address2 The address 2 line of the card holder
-     *  - city The city of the card holder
-     *  - state An array of state info including:
-     *      - code The 2 or 3-character state code
-     *      - name The local name of the country
-     *  - country An array of country info including:
-     *      - alpha2 The 2-character country code
-     *      - alpha3 The 3-character country code
-     *      - name The english name of the country
-     *      - alt_name The local name of the country
-     *  - zip The zip/postal code of the card holder
-     * @param float $amount The amount to charge this card
-     * @param array $invoice_amounts An array of invoices, each containing:
-     *  - id The ID of the invoice being processed
-     *  - amount The amount being processed for this invoice (which is included in $amount)
-     * @return array An array of transaction data including:
-     *  - status The status of the transaction (approved, declined, void, pending, reconciled, refunded, returned)
-     *  - reference_id The reference ID for gateway-only use with this transaction (optional)
-     *  - transaction_id The ID returned by the remote gateway to identify this transaction
-     *  - message The message to be displayed in the interface in addition to the standard
-     *      message for this transaction status (optional)
-     */
-    public function processCc(array $card_info, $amount, array $invoice_amounts = null)
-    {
-        $api = $this->getApi();
-
-        $vars = [
-            'forma' => 'Cartão', // Card
-            'cliente' => $card_info['first_name'] . ' ' . $card_info['last_name'],
-            'pessoa' => true ? 'Física'/* Individual Person */ : 'Jurídica'/* Brazillian Company */,
-            'cpf' => '', // Natural Persons Register (Cadastro de Pessoas Físicas), required for Física charges
-            'cnpj' => '', // National Registry of Legal Entities (Cadastro Nacional da Pessoa Jurídica), required for Jurídica charges
-            'email' => '', // Optional
-            'telefone' => '', // Telephone Number, optional
-            'endereco' => [ // Address, optional
-                'rua' => $card_info['address1'], // Street
-                'numero' => '', // Number
-                'complemento' => $card_info['address2'], // Full Address
-                'bairro' => '', // Neighborhood
-                'cep' => $card_info['zip'], // Zip Code
-                'cidade' => $card_info['city'], // City
-                'estado' => $card_info['state']['code'], // State
-                'coletar' => 'Sim', // Option for the payment screen to prompt the customer to enter a delivery address, either Não(no) or Sim(yes)
-            ],
-            'items' => [ // Items
-                [
-                    'descricao' => '', // Description
-                    'valor' => $amount, // Value
-                ]
-            ],
-            'referencia' => '', // Reference, optional, URL to be called when billing changes status
-            'notificacao' => '', // Notification, optional, URL that the system will redirect when payment
-            // is available and used only if the form attribute is Cartão(card)
-            'redirecionamento' => '', // Redirection, optional
-            'vencimento' => '', // Maturity, required for Boleto charges
-            'enviar' => '', // Submit, optional
-            'mensagem' => '', // Message, optional
-            'marketplace' => [ // Marketplace, optional
-                [
-                    'carteira' => '', // Portfolio (wallet)
-                    'valor' => '', // Value
-                    'item' => '' // Item
-                ]
-            ],
-            'boleto' => [ // Ticket, optional
-                'desconto' => '', // Discount
-                'multa' => '', // Fine
-                'juros' => '', // Interest
-                'instrucoes' => '' // Instructions
-            ]
-        ];
-
-        $api->createCharge($vars);
-
-        return [
-            'status' => $status,
-            'reference_id' => substr($this->ifSet($card_info['card_number']), -4),
-            'transaction_id' => $this->ifSet($response['x_trans_id']),
-            'message' => $this->ifSet($response['x_response_reason_text'])
-        ];
-    }
-
-    /**
-     * Authorize a credit card
-     *
-     * @param array $card_info An array of credit card info including:
-     *  - first_name The first name on the card
-     *  - last_name The last name on the card
-     *  - card_number The card number
-     *  - card_exp The card expidation date
-     *  - card_security_code The 3 or 4 digit security code of the card (if available)
-     *  - address1 The address 1 line of the card holder
-     *  - address2 The address 2 line of the card holder
-     *  - city The city of the card holder
      *  - state An array of state info including:
      *      - code The 2 or 3-character state code
      *      - name The local name of the country
@@ -545,97 +143,287 @@ class Widepay extends MerchantGateway implements MerchantCc, MerchantCcOffsite
      *      - alpha3 The 3-cahracter country code
      *      - name The english name of the country
      *      - alt_name The local name of the country
-     *  - zip The zip/postal code of the card holder
-     * @param float $amount The amount to charge this card
+     *  - zip The zip/postal code of the contact
+     * @param float $amount The amount to charge this contact
      * @param array $invoice_amounts An array of invoices, each containing:
      *  - id The ID of the invoice being processed
      *  - amount The amount being processed for this invoice (which is included in $amount)
-     * @return array An array of transaction data including:
+     * @param array $options An array of options including:
+     *  - description The Description of the charge
+     *  - return_url The URL to redirect users to after a successful payment
+     *  - recur An array of recurring info including:
+     *      - start_date The date/time in UTC that the recurring payment begins
+     *      - amount The amount to recur
+     *      - term The term to recur
+     *      - period The recurring period (day, week, month, year, onetime) used in
+     *          conjunction with term in order to determine the next recurring payment
+     * @return mixed A string of HTML markup required to render an authorization and
+     *  capture payment form, or an array of HTML markup
+     */
+    public function buildProcess(array $contact_info, $amount, array $invoice_amounts = null, array $options = null)
+    {
+        // Load the models required
+        Loader::loadModels($this, ['Clients']);
+
+        // Load the helpers required
+        Loader::loadHelpers($this, ['Html']);
+
+        if (!empty($_POST)) {
+            // Load the models required
+            Loader::loadModels($this, ['Contacts']);
+
+            // Load library methods
+            $api = $this->getApi();
+
+            // Force 2-decimal places only
+            $amount = number_format($amount, 2, '.', '');
+
+            // Get client data
+            $client = $this->Clients->get($contact_info['client_id']);
+            $client->fields = $this->Clients->getCustomFieldValues($contact_info['client_id']);
+
+            $cpf_cnpj = '';
+            $entity_type = 'Física';
+            foreach ($client->fields as $field) {
+                if (strtolower($field->name) == 'cpf/cnpj') {
+                    $cpf_cnpj = $field->value;
+                }
+
+                if (strtolower($field->name) == 'entity_type') {
+                    $entity_type = $field->value;
+                }
+            }
+
+            // Get client phone number
+            $contact_numbers = $this->Contacts->getNumbers($client->contact_id);
+
+            $client_phone = '';
+            foreach ($contact_numbers as $contact_number) {
+                switch ($contact_number->location) {
+                    case 'home':
+                        // Set home phone number
+                        if ($contact_number->type == 'phone') {
+                            $client_phone = $contact_number->number;
+                        }
+                        break;
+                    case 'work':
+                        // Set work phone/fax number
+                        if ($contact_number->type == 'phone') {
+                            $client_phone = $contact_number->number;
+                        }
+                        // No break?
+                    case 'mobile':
+                        // Set mobile phone number
+                        if ($contact_number->type == 'phone') {
+                            $client_phone = $contact_number->number;
+                        }
+                        break;
+                }
+            }
+
+            if (!empty($client_phone)) {
+                $client_phone = preg_replace('/[^0-9]/', '', $client_phone);
+            }
+
+            // Build the payment request
+            $notification_url = Configure::get('Blesta.gw_callback_url') . Configure::get('Blesta.company_id')
+                . '/widepay/?client_id=' . $contact_info['client_id'];
+            $form_type = 'Boleto';
+            $params = [
+                'forma' => $form_type, // Form type (card or ticket)
+                'cliente' => $this->Html->concat(
+                    ' ',
+                    $this->ifSet($contact_info['first_name']),
+                    $this->ifSet($contact_info['last_name'])
+                ),
+                'pessoa' => $entity_type, // Check custom fields
+                'email' => $this->ifSet($client->email),
+                'telefone' => $this->ifSet($client_phone),
+                'itens' => [],
+                'notificacao' => $this->ifSet($notification_url),
+            ];
+
+            if ($form_type == 'Boleto') {
+                $params['vencimento'] = '???'; // Figure out what this is
+            }
+
+            if ($entity_type == 'Física') {
+                $params['cpf'] = $cpf_cnpj; // Check custom fields
+            } else {
+                $params['cnpj'] = $cpf_cnpj; // Check custom fields
+            }
+
+            // Set all invoices to pay
+            if (isset($invoice_amounts) && is_array($invoice_amounts)) {
+                foreach ($invoice_amounts as $invoice) {
+                    $params['itens'][] = [
+                        'descricao' => $invoice['id'], // Description
+                        'valor' => $invoice['amount'], // Value
+                    ];
+                }
+            }
+
+            $this->log($this->ifSet($_SERVER['REQUEST_URI']), serialize($params), 'input', true);
+
+            // Send the request to the api
+            $request = $api->createCharge($params);
+
+            // Build the payment form
+            try {
+                if ($request->status() == '200') {
+                    $this->log($this->ifSet($_SERVER['REQUEST_URI']), $request->raw(), 'output', true);
+
+                    // Redirect the use to Wide Pay to finish payment
+                    $this->redirectToUrl($charge_response->link);
+                } else {
+                    // The api has been responded with an error, set the error
+                    $this->log($this->ifSet($_SERVER['REQUEST_URI']), $request->raw(), 'output', false);
+                    $this->Input->setErrors(
+                        ['api' => ['response' => $request->errors()]]
+                    );
+
+                    return null;
+                }
+            } catch (Exception $e) {
+                $this->Input->setErrors(
+                    ['internal' => ['response' => $e->getMessage()]]
+                );
+            }
+        }
+
+        return $this->buildForm();
+    }
+
+    /**
+     * Builds the HTML form.
+     *
+     * @return string The HTML form
+     */
+    private function buildForm()
+    {
+        $this->view = $this->makeView('process', 'default', str_replace(ROOTWEBDIR, '', dirname(__FILE__) . DS));
+
+        // Load the helpers required for this view
+        Loader::loadHelpers($this, ['Form', 'Html']);
+
+        return $this->view->fetch();
+    }
+
+    /**
+     * Validates the incoming POST/GET response from the gateway to ensure it is
+     * legitimate and can be trusted.
+     *
+     * @param array $get The GET data for this request
+     * @param array $post The POST data for this request
+     * @return array An array of transaction data, sets any errors using Input if the data fails to validate
+     *  - client_id The ID of the client that attempted the payment
+     *  - amount The amount of the payment
+     *  - currency The currency of the payment
+     *  - invoices An array of invoices and the amount the payment should be applied to (if any) including:
+     *      - id The ID of the invoice to apply to
+     *      - amount The amount to apply to the invoice
      *  - status The status of the transaction (approved, declined, void, pending, reconciled, refunded, returned)
      *  - reference_id The reference ID for gateway-only use with this transaction (optional)
-     *  - transaction_id The ID returned by the remote gateway to identify this transaction
-     *  - message The message to be displayed in the interface in addition to the standard
-     *      message for this transaction status (optional)
+     *  - transaction_id The ID returned by the gateway to identify this transaction
+     *  - parent_transaction_id The ID returned by the gateway to identify this transaction's
+     *      original transaction (in the case of refunds)
      */
-    public function authorizeCc(array $card_info, $amount, array $invoice_amounts = null)
+    public function validate(array $get, array $post)
     {
+        $api = $this->getApi();
+
+        // Get invoices
+        $invoices = $this->ifSet($post['itens']);
+
+        // Get the transaction details
+        $response = $api->getCharge($post['tran_id']);
+
+        // Validate charge
+
         return [
+            'client_id' => $client_id,
+            'amount' => $amount,
+            'currency' => $currency,
             'status' => $status,
-            'reference_id' => substr($this->ifSet($card_info['card_number']), -4),
-            'transaction_id' => $this->ifSet($response['x_trans_id']),
-            'message' => $this->ifSet($response['x_response_reason_text'])
+            'reference_id' => null,
+            'transaction_id' => $this->ifSet($response->bank_tran_id, $post['tran_id']),
+            'invoices' => $this->unserializeInvoices($invoices)
         ];
     }
 
     /**
-     * Capture the funds of a previously authorized credit card
+     * Returns data regarding a success transaction. This method is invoked when
+     * a client returns from the non-merchant gateway's web site back to Blesta.
      *
-     * @param string $reference_id The reference ID for the previously authorized transaction
-     * @param string $transaction_id The transaction ID for the previously authorized transaction
-     * @param float $amount The amount to capture on this card
-     * @param array $invoice_amounts An array of invoices, each containing:
-     *  - id The ID of the invoice being processed
-     *  - amount The amount being processed for this invoice (which is included in $amount)
-     * @return array An array of transaction data including:
+     * @param array $get The GET data for this request
+     * @param array $post The POST data for this request
+     * @return array An array of transaction data, may set errors using Input if the data appears invalid
+     *  - client_id The ID of the client that attempted the payment
+     *  - amount The amount of the payment
+     *  - currency The currency of the payment
+     *  - invoices An array of invoices and the amount the payment should be applied to (if any) including:
+     *      - id The ID of the invoice to apply to
+     *      - amount The amount to apply to the invoice
      *  - status The status of the transaction (approved, declined, void, pending, reconciled, refunded, returned)
-     *  - reference_id The reference ID for gateway-only use with this transaction (optional)
-     *  - transaction_id The ID returned by the remote gateway to identify this transaction
-     *  - message The message to be displayed in the interface in addition to the standard
-     *      message for this transaction status (optional)
+     *  - transaction_id The ID returned by the gateway to identify this transaction
+     *  - parent_transaction_id The ID returned by the gateway to identify this transaction's original transaction
      */
-    public function captureCc($reference_id, $transaction_id, $amount, array $invoice_amounts = null)
+    public function success(array $get, array $post)
     {
+        // Get client id
+        $client_id = $this->ifSet($get['client_id']);
+
         return [
-            'status' => $status,
+            'client_id' => $client_id,
+            'amount' => null,
+            'currency' => null,
+            'status' => 'approved',
             'reference_id' => null,
-            'transaction_id' => $this->ifSet($response['x_trans_id']),
-            'message' => $this->ifSet($response['x_response_reason_text'])
+            'transaction_id' => null,
+            'invoices' => null
         ];
     }
 
     /**
-     * Void a credit card charge
+     * Serializes an array of invoice info into a string.
      *
-     * @param string $reference_id The reference ID for the previously authorized transaction
-     * @param string $transaction_id The transaction ID for the previously authorized transaction
-     * @return array An array of transaction data including:
-     *  - status The status of the transaction (approved, declined, void, pending, reconciled, refunded, returned)
-     *  - reference_id The reference ID for gateway-only use with this transaction (optional)
-     *  - transaction_id The ID returned by the remote gateway to identify this transaction
-     *  - message The message to be displayed in the interface in addition to the standard
-     *      message for this transaction status (optional)
+     * @param array A numerically indexed array invoices info including:
+     *  - id The ID of the invoice
+     *  - amount The amount relating to the invoice
+     * @return string A serialized string of invoice info in the format of key1=value1|key2=value2
      */
-    public function voidCc($reference_id, $transaction_id)
+    private function serializeInvoices(array $invoices)
     {
-        return [
-            'status' => $status,
-            'reference_id' => null,
-            'transaction_id' => $this->ifSet($response['x_trans_id']),
-            'message' => $this->ifSet($response['x_response_reason_text'])
-        ];
+        $str = '';
+        foreach ($invoices as $i => $invoice) {
+            $str .= ($i > 0 ? '|' : '') . $invoice['id'] . '=' . $invoice['amount'];
+        }
+
+        return $str;
     }
 
     /**
-     * Refund a credit card charge
+     * Unserializes a string of invoice info into an array.
      *
-     * @param string $reference_id The reference ID for the previously authorized transaction
-     * @param string $transaction_id The transaction ID for the previously authorized transaction
-     * @param float $amount The amount to refund this card
-     * @return array An array of transaction data including:
-     *  - status The status of the transaction (approved, declined, void, pending, reconciled, refunded, returned)
-     *  - reference_id The reference ID for gateway-only use with this transaction (optional)
-     *  - transaction_id The ID returned by the remote gateway to identify this transaction
-     *  - message The message to be displayed in the interface in addition to the standard
-     *      message for this transaction status (optional)
+     * @param string A serialized string of invoice info in the format of key1=value1|key2=value2
+     * @param mixed $str
+     * @return array A numerically indexed array invoices info including:
+     *  - id The ID of the invoice
+     *  - amount The amount relating to the invoice
      */
-    public function refundCc($reference_id, $transaction_id, $amount)
+    private function unserializeInvoices($str)
     {
-        return [
-            'status' => $status,
-            'reference_id' => null,
-            'transaction_id' => $this->ifSet($response['x_trans_id']),
-            'message' => $this->ifSet($response['x_response_reason_text'])
-        ];
+        $invoices = [];
+        $temp = explode('|', $str);
+        foreach ($temp as $pair) {
+            $pairs = explode('=', $pair, 2);
+            if (count($pairs) != 2) {
+                continue;
+            }
+            $invoices[] = ['id' => $pairs[0], 'amount' => $pairs[1]];
+        }
+
+        return $invoices;
     }
 
     /**
@@ -649,5 +437,22 @@ class Widepay extends MerchantGateway implements MerchantCc, MerchantCcOffsite
             $this->meta['wallet_id'],
             $this->meta['wallet_token']
         );
+    }
+
+    /**
+     * Generates a redirect to the specified url.
+     *
+     * @param string $url The url to be redirected
+     * @return bool True if the redirection was successful, false otherwise
+     */
+    private function redirectToUrl($url)
+    {
+        try {
+            header('Location: ' . $url);
+
+            return true;
+        } catch (Exception $e) {
+            return false;
+        }
     }
 }
