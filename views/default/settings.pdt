@@ -1,0 +1,14 @@
+	<ul>
+		<li>
+			<?php
+            $this->Form->label($this->_('Widepay.wallet_id', true));
+            $this->Form->fieldText('wallet_id', $this->Html->ifSet($meta['wallet_id']));
+            ?>
+		</li>
+		<li>
+			<?php
+            $this->Form->label($this->_('Widepay.wallet_token', true));
+            $this->Form->fieldText('wallet_token', $this->Html->ifSet($meta['wallet_token']));
+            ?>
+		</li>
+	</ul>
