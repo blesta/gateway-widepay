@@ -9,28 +9,30 @@ class WidepayResponse
     private $headers;
 
     /**
-     * CwatchResponse constructor.
+     * WidepayResponse constructor.
      *
      * @param array $apiResponse
      */
     public function __construct(array $apiResponse)
     {
-        $this->raw = isset($apiResponse['content']) ? $apiResponse['content'] : '';
-        $this->headers = isset($apiResponse['headers']) ? $apiResponse['headers'] : '';
-        $response = json_decode($this->raw);
-        if (!isset($response->error)) {
-            if (empty($response->validationErrors)) {
-                $this->status = 200;
-                $this->response = $response;
-            } else {
-                $this->status = 500;
-                $this->errors = $response->validationErrors;
+        $this->raw = $apiResponse['content'];
+        $this->response = json_decode($apiResponse['content']);
+        $this->headers = $apiResponse['headers'];
+
+        $this->status = '400';
+        if (isset($this->headers[0])) {
+            $status_parts = explode(' ', $this->headers[0]);
+            if (isset($status_parts[1])) {
+                $this->status = $status_parts[1];
             }
-        } else {
-            $this->status = $response->status;
-            $this->errors = $response->message;
-            $this->response = $response;
         }
+
+        $this->errors = isset($this->response->errors)
+            ? $this->response->errors
+            : (isset($this->response->error)
+                ? [$this->response->error]
+                : []
+            );
     }
 
     /**
@@ -66,7 +68,7 @@ class WidepayResponse
     /**
      * Get any errors from this response
      *
-     * @return string The errors from this response
+     * @return array The errors from this response
      */
     public function errors()
     {

@@ -1,3 +1,4 @@
-<a href="<?php echo $this->Html->ifSet($post_to); ?>" class="btn btn-primary">
-    <i class="fa fa-credit-card" aria-hidden="true"></i> <?php $this->_('Widepay.buildprocess.submit'); ?>
-</a>
+    <?php
+    $this->Form->create();
+    $this->Form->fieldSubmit('submit_kassacompleet', $this->_('Widepay.buildprocess.submit', true));
+    $this->Form->end();

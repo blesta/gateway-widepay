@@ -66,7 +66,6 @@ class WidepayApi
                 break;
         }
 
-        var_dump($url);
         curl_setopt($curl, CURLOPT_CUSTOMREQUEST, strtoupper($method));
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
         curl_setopt($curl, CURLOPT_HEADER, 1);
@@ -94,158 +93,30 @@ class WidepayApi
         }
         curl_close($curl);
 
-        print_r($result);
-        $authorization = '';
         $data = explode("\n", $result);
-        foreach ($data as $part) {
-            $splitPart = explode(':', $part);
-            if ($splitPart[0] == 'Authorization' && isset($splitPart[1])) {
-                $authorization = $splitPart[1];
-                break;
-            }
-        }
 
         // Return request response
-        return new WidepayResponse(['content' => $data[count($data) - 1], 'headers' => $authorization]);
+        return new WidepayResponse(['content' => $data[count($data) - 1], 'headers' => array_splice($data, 0, count($data) - 1)]);
     }
 
     /**
+     * Creates a charge in Wide Pay
      *
+     * @param array $params A list of parameters for creating a charge
      */
     public function createCharge($params)
     {
-        $params = [
-            'forma' => 'Cartão', // Card
-            'cliente' => 'First Test',
-            'pessoa' => 'Física',
-            'cpf' => '463.384.662-02', // Natural Persons Register (Cadastro de Pessoas Físicas), required for Física charges
-            'email' => 'firsttest@mailinator.com', // Optional
-            'telefone' => '67 98888-0000', // Telephone Number, optional
-            'endereco' => [ // Address, optional
-                'rua' => 'Rua Primeiro de Julho', // Street
-                'numero' => '192', // Number
-                'complemento' => 'Sala 25', // Full Address
-                'bairro' => 'Vila Carvalho', // Neighborhood
-                'cep' => '79005-610', // Zip Code
-                'cidade' => 'Campo Grande', // City
-                'estado' => 'MS', // State
-                'coletar' => 'Sim' // Option for the payment screen to prompt the customer to enter a delivery address, either Não(no) or Sim(yes)
-            ],
-            'items' => [ // Items
-                [
-                    'descricao' => 'Descrição item 1', // Description
-                    'valor' => 20, // Value
-                ]
-            ],
-            'referencia' => 'Fatura 12345', // Reference, optional, Reference code to associate a specific ID of your system or application with billing, maximum length: 100 characters
-            'notificacao' => 'https://www.blesta.us/452/callback/gw/1/widepay/', // Notification, optional, URL to be called when billing changes status
-        ];
-
         return $this->apiRequest('recebimentos/cobrancas/adicionar', $params, 'POST');
     }
 
     /**
+     * Gets an existing Wide Pay charge based on the notification ID
      *
+     * @param string $notification_id The ID by which to fetch a charge
      */
-    public function setupCard($params)
+    public function getNotificationCharge($notification_id)
     {
-//        $params = [
-//            'cliente' => 'First Test', // Client name
-//            'pessoa' => 'Física', // Type of issuer
-//            'cpf' => '463.384.662-02', // Natural Persons Register (Cadastro de Pessoas Físicas), required for Física charges
-//            'email' => 'firsttest@mailinator.com', // Optional
-//            'telefone' => '67 98888-0000', // Telephone Number, optional
-//            'endereco' => [ // Address, optional
-//                'rua' => 'Rua Primeiro de Julho', // Street name
-//                'numero' => '192', // Street number
-//                'complemento' => 'Sala 25', // Suite #
-//                'bairro' => 'Vila Carvalho', // Neighborhood/district
-//                'cep' => '79005-610', // Zip Code
-//                'cidade' => 'Campo Grande', // City
-//                'estado' => 'MS', // State
-//                'coletar' => 'Sim' // Option for the payment screen to prompt the customer to enter a delivery address, either Não(no) or Sim(yes)
-//            ],
-//            'itens' => [ // Items
-//                [
-//                    'descricao' => 'Descrição item 1', // Description
-//                    'valor' => 20, // Value
-//                ]
-//            ],
-//            'notificacao' => 'https://www.blesta.us/452/callback/gw/1/widepay/', // Notification, optional, URL to be called when billing changes status
-//            'vencimento' => '2019-05-10',
-//            'parcelas' => 2,
-//            'dividir' => 'Não'
-//        ];
-//
-//        return $this->apiRequest('recebimentos/carnes/adicionar', $params, 'POST');
-
-//        $params = [
-//            'forma' => 'Cartão', // Card
-//            'cliente' => 'First Test',
-//            'pessoa' => 'Física',
-//            'cpf' => '463.384.662-02', // Natural Persons Register (Cadastro de Pessoas Físicas), required for Física charges
-//            'email' => 'firsttest@mailinator.com', // Optional
-//            'telefone' => '67 98888-0000', // Telephone Number, optional
-//            'endereco' => [ // Address, optional
-//                'rua' => 'Rua Primeiro de Julho', // Street
-//                'numero' => '192', // Number
-//                'complemento' => 'Sala 25', // Full Address
-//                'bairro' => 'Vila Carvalho', // Neighborhood
-//                'cep' => '79005-610', // Zip Code
-//                'cidade' => 'Campo Grande', // City
-//                'estado' => 'MS', // State
-//                'coletar' => 'Sim' // Option for the payment screen to prompt the customer to enter a delivery address, either Não(no) or Sim(yes)
-//            ],
-//            'itens' => [ // Items
-//                [
-//                    'descricao' => 'Descrição item 1', // Description
-//                    'valor' => 20, // Value
-//                ]
-//            ],
-//            'referencia' => 'Fatura 12345', // Reference, optional, Reference code to associate a specific ID of your system or application with billing, maximum length: 100 characters
-//            'notificacao' => 'https://www.blesta.us/452/callback/gw/1/widepay/', // Notification, optional, URL to be called when billing changes status
-//        ];
-//
-//        return $this->apiRequest('recebimentos/cobrancas/adicionar', $params, 'POST');
-//
-        $params = [
-            'forma' => 'Boleto', // Ticket
-            'cliente' => 'First Test',
-            'pessoa' => 'Física',
-            'cpf' => '463.384.662-02', // Natural Persons Register (Cadastro de Pessoas Físicas), required for Física charges
-            'email' => 'firsttest@mailinator.com', // Optional
-            'telefone' => '67 98888-0000', // Telephone Number, optional
-            'endereco' => [ // Address, optional
-                'rua' => 'Rua Primeiro de Julho', // Street
-                'numero' => '192', // Number
-                'complemento' => 'Sala 25', // Full Address
-                'bairro' => 'Vila Carvalho', // Neighborhood
-                'cep' => '79005-610', // Zip Code
-                'cidade' => 'Campo Grande', // City
-                'estado' => 'MS', // State
-                'coletar' => 'Sim' // Option for the payment screen to prompt the customer to enter a delivery address, either Não(no) or Sim(yes)
-            ],
-            'itens' => [ // Items
-                [
-                    'descricao' => 'Descrição item 1', // Description
-                    'valor' => 20, // Value
-                ]
-            ],
-            'referencia' => 'Fatura 12345', // Reference, optional, Reference code to associate a specific ID of your system or application with billing, maximum length: 100 characters
-            'notificacao' => 'https://www.blesta.us/452/callback/gw/1/widepay/', // Notification, optional, URL to be called when billing changes status
-            'vencimento' => '2019-05-10',
-        ];
-
-        return $this->apiRequest('recebimentos/cobrancas/adicionar', $params, 'POST');
-
-//        $params = [
-//            'cobrancas' => [
-//                '422F78B5F7B756F0',
-//                '1D1A7E1557183CCC'
-//            ]
-//        ];
-
-//        return $this->apiRequest('recebimentos/carnes/montar', $params, 'POST');
+        return $this->apiRequest('recebimentos/cobrancas/notificacao', ['id' => $notification_id], 'POST');
     }
 
     /**

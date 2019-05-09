@@ -55,7 +55,7 @@ class Widepay extends NonmerchantGateway
     {
         // Load the view into this object, so helpers can be automatically add to the view
         $this->view = new View('settings', 'default');
-        $this->view->setDefaultView('components' . DS . 'gateways' . DS . 'merchant' . DS . 'widepay' . DS);
+        $this->view->setDefaultView('components' . DS . 'gateways' . DS . 'nonmerchant' . DS . 'widepay' . DS);
 
         // Load the helpers required for this view
         Loader::loadHelpers($this, ['Form', 'Html']);
@@ -189,7 +189,7 @@ class Widepay extends NonmerchantGateway
                     $cpf_cnpj = $field->value;
                 }
 
-                if (strtolower($field->name) == 'entity_type') {
+                if (strtolower($field->name) == 'entity type') {
                     $entity_type = $field->value;
                 }
             }
@@ -228,7 +228,7 @@ class Widepay extends NonmerchantGateway
             // Build the payment request
             $notification_url = Configure::get('Blesta.gw_callback_url') . Configure::get('Blesta.company_id')
                 . '/widepay/?client_id=' . $contact_info['client_id'];
-            $form_type = 'Boleto';
+            $form_type = 'Cartão'; // This should be customizable
             $params = [
                 'forma' => $form_type, // Form type (card or ticket)
                 'cliente' => $this->Html->concat(
@@ -244,7 +244,7 @@ class Widepay extends NonmerchantGateway
             ];
 
             if ($form_type == 'Boleto') {
-                $params['vencimento'] = '???'; // Figure out what this is
+                $params['vencimento'] = date('Y-m-d H:i:s', strtotime(date('Y-m-d H:i:s') . ' +1 day')); // Figure out what this is
             }
 
             if ($entity_type == 'Física') {
@@ -267,30 +267,26 @@ class Widepay extends NonmerchantGateway
 
             // Send the request to the api
             $request = $api->createCharge($params);
+            $errors = $request->errors();
+            if (empty($errors)) {
+                $this->log($this->ifSet($_SERVER['REQUEST_URI']), $request->raw(), 'output', true);
 
-            // Build the payment form
-            try {
-                if ($request->status() == '200') {
-                    $this->log($this->ifSet($_SERVER['REQUEST_URI']), $request->raw(), 'output', true);
+                $charge_response = $request->response();
 
-                    // Redirect the use to Wide Pay to finish payment
-                    $this->redirectToUrl($charge_response->link);
-                } else {
-                    // The api has been responded with an error, set the error
-                    $this->log($this->ifSet($_SERVER['REQUEST_URI']), $request->raw(), 'output', false);
-                    $this->Input->setErrors(
-                        ['api' => ['response' => $request->errors()]]
-                    );
-
-                    return null;
-                }
-            } catch (Exception $e) {
+                // Redirect the use to Wide Pay to finish payment
+                $this->redirectToUrl($charge_response->link);
+            } else {
+                // The api has been responded with an error, set the error
+                $this->log($this->ifSet($_SERVER['REQUEST_URI']), $request->raw(), 'output', false);
                 $this->Input->setErrors(
-                    ['internal' => ['response' => $e->getMessage()]]
+                    ['api' => ['response' => $request->errors()]]
                 );
+
+                return null;
             }
         }
 
+        // Build the payment form
         return $this->buildForm();
     }
 
@@ -332,22 +328,52 @@ class Widepay extends NonmerchantGateway
     {
         $api = $this->getApi();
 
-        // Get invoices
-        $invoices = $this->ifSet($post['itens']);
+        // The api has been responded with an error, set the error
+        $this->log($this->ifSet($_SERVER['REQUEST_URI']), json_encode($post), 'input', true);
 
         // Get the transaction details
-        $response = $api->getCharge($post['tran_id']);
+        $charge_response = $api->getNotificationCharge(isset($post['notificacao']) ? $post['notificacao'] :  '');
 
-        // Validate charge
+        // Log the Wide Pay response
+        $errors = $charge_response->errors();
+        $this->log($this->ifSet($_SERVER['REQUEST_URI']), $charge_response->raw(), 'output', empty($errors));
+
+        $response = $charge_response->response();
+
+        $status = empty($errors) ? 'approved' : 'error';
+
+        if ($this->ifSet($response->cobranca->status)) {
+            switch ($response->cobranca->status) {
+                case 'Aguardando':
+                case 'Em análise':
+                    $status = 'pending';
+                    break;
+                case 'Estornado':
+                    $status = 'refunded';
+                    break;
+                case 'Recebido':
+                case 'Recebido manualmente':
+                    $status = 'approved';
+                    break;
+                case 'Recusado':
+                case 'Cancelado':
+                case 'Contestado':
+                    $status = 'declined';
+                    break;
+                case 'Vencido':
+                    $status = 'void';
+                    break;
+            }
+        }
 
         return [
-            'client_id' => $client_id,
-            'amount' => $amount,
-            'currency' => $currency,
+            'client_id' => $get['client_id'],
+            'amount' => $this->ifSet($response->cobranca->valor, 0),
+            'currency' => 'BRL',
             'status' => $status,
             'reference_id' => null,
-            'transaction_id' => $this->ifSet($response->bank_tran_id, $post['tran_id']),
-            'invoices' => $this->unserializeInvoices($invoices)
+            'transaction_id' => $this->ifSet($response->cobranca->id),
+            'invoices' => $this->unserializeInvoices($this->ifSet($response->cobranca->itens, []))
         ];
     }
 
@@ -385,42 +411,18 @@ class Widepay extends NonmerchantGateway
     }
 
     /**
-     * Serializes an array of invoice info into a string.
-     *
-     * @param array A numerically indexed array invoices info including:
-     *  - id The ID of the invoice
-     *  - amount The amount relating to the invoice
-     * @return string A serialized string of invoice info in the format of key1=value1|key2=value2
-     */
-    private function serializeInvoices(array $invoices)
-    {
-        $str = '';
-        foreach ($invoices as $i => $invoice) {
-            $str .= ($i > 0 ? '|' : '') . $invoice['id'] . '=' . $invoice['amount'];
-        }
-
-        return $str;
-    }
-
-    /**
      * Unserializes a string of invoice info into an array.
      *
-     * @param string A serialized string of invoice info in the format of key1=value1|key2=value2
-     * @param mixed $str
+     * @param array $items A list of items from Wide Pay
      * @return array A numerically indexed array invoices info including:
      *  - id The ID of the invoice
      *  - amount The amount relating to the invoice
      */
-    private function unserializeInvoices($str)
+    private function unserializeInvoices(array $items)
     {
         $invoices = [];
-        $temp = explode('|', $str);
-        foreach ($temp as $pair) {
-            $pairs = explode('=', $pair, 2);
-            if (count($pairs) != 2) {
-                continue;
-            }
-            $invoices[] = ['id' => $pairs[0], 'amount' => $pairs[1]];
+        foreach ($items as $item) {
+            $invoices[] = ['id' => $item->descricao, 'amount' => $item->valor];
         }
 
         return $invoices;
