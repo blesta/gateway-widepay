@@ -22,7 +22,7 @@ class Widepay extends NonmerchantGateway
      */
     public function __construct()
     {
-        // Load the cWatch API
+        // Load the Wide Pay API
         Loader::load(dirname(__FILE__) . DS . 'api' . DS . 'widepay_api.php');
 
         // Load configuration required by this gateway
@@ -228,7 +228,8 @@ class Widepay extends NonmerchantGateway
             // Build the payment request
             $notification_url = Configure::get('Blesta.gw_callback_url') . Configure::get('Blesta.company_id')
                 . '/widepay/?client_id=' . $contact_info['client_id'];
-            $form_type = 'Cartão'; // This should be customizable
+            // Convert special characters that had been html encoded
+            $form_type = isset($_POST['charge_type']) ? html_entity_decode($_POST['charge_type']) : 'Cartão';
             $params = [
                 'forma' => $form_type, // Form type (card or ticket)
                 'cliente' => $this->Html->concat(
@@ -241,6 +242,7 @@ class Widepay extends NonmerchantGateway
                 'telefone' => $this->ifSet($client_phone),
                 'itens' => [],
                 'notificacao' => $this->ifSet($notification_url),
+                'redirecionamento' => $options['return_url'],
             ];
 
             if ($form_type == 'Boleto') {
@@ -263,7 +265,7 @@ class Widepay extends NonmerchantGateway
                 }
             }
 
-            $this->log($this->ifSet($_SERVER['REQUEST_URI']), serialize($params), 'input', true);
+            $this->log($this->ifSet($_SERVER['REQUEST_URI']), json_encode($params), 'input', true);
 
             // Send the request to the api
             $request = $api->createCharge($params);
@@ -298,6 +300,13 @@ class Widepay extends NonmerchantGateway
     private function buildForm()
     {
         $this->view = $this->makeView('process', 'default', str_replace(ROOTWEBDIR, '', dirname(__FILE__) . DS));
+        $this->view->set(
+            'charge_types',
+            [
+                'Boleto' => Language::_('Widepay.charge_types.ticket', true),
+                'Cartão' => Language::_('Widepay.charge_types.card', true)
+            ]
+        );
 
         // Load the helpers required for this view
         Loader::loadHelpers($this, ['Form', 'Html']);
@@ -331,8 +340,8 @@ class Widepay extends NonmerchantGateway
         // The api has been responded with an error, set the error
         $this->log($this->ifSet($_SERVER['REQUEST_URI']), json_encode($post), 'input', true);
 
-        // Get the transaction details
-        $charge_response = $api->getNotificationCharge(isset($post['notificacao']) ? $post['notificacao'] :  '');
+        // Get the charge details from Wide Pay
+        $charge_response = $api->getNotificationCharge(isset($post['notificacao']) ? $post['notificacao'] : '');
 
         // Log the Wide Pay response
         $errors = $charge_response->errors();
@@ -340,30 +349,10 @@ class Widepay extends NonmerchantGateway
 
         $response = $charge_response->response();
 
+        // Get the status of the charge
         $status = empty($errors) ? 'approved' : 'error';
-
         if ($this->ifSet($response->cobranca->status)) {
-            switch ($response->cobranca->status) {
-                case 'Aguardando':
-                case 'Em análise':
-                    $status = 'pending';
-                    break;
-                case 'Estornado':
-                    $status = 'refunded';
-                    break;
-                case 'Recebido':
-                case 'Recebido manualmente':
-                    $status = 'approved';
-                    break;
-                case 'Recusado':
-                case 'Cancelado':
-                case 'Contestado':
-                    $status = 'declined';
-                    break;
-                case 'Vencido':
-                    $status = 'void';
-                    break;
-            }
+            $status = $this->mapStatus($response->cobranca->status);
         }
 
         return [
@@ -396,18 +385,96 @@ class Widepay extends NonmerchantGateway
      */
     public function success(array $get, array $post)
     {
+        $api = $this->getApi();
+
         // Get client id
         $client_id = $this->ifSet($get['client_id']);
 
+        $this->log($this->ifSet($_SERVER['REQUEST_URI']), [], 'input', true);
+
+        // Get the charge information from Wide Pay
+        $charge_response = $api->getCharge($this->ifSet($get['cobranca']));
+        $response = $charge_response->response();
+
+        $this->log($this->ifSet($_SERVER['REQUEST_URI']), $charge_response->raw(), 'output', true);
+
         return [
             'client_id' => $client_id,
-            'amount' => null,
-            'currency' => null,
-            'status' => 'approved',
+            'amount' => $this->ifSet($response->cobrancas[0]->valor),
+            'currency' => 'BRL',
+            'status' => $this->mapStatus($response->cobrancas[0]->status),
             'reference_id' => null,
-            'transaction_id' => null,
-            'invoices' => null
+            'transaction_id' => $this->ifSet($get['cobranca']),
+            'invoices' => $this->unserializeInvoices($this->ifSet($response->cobrancas[0]->itens, []))
         ];
+    }
+
+    /**
+     * Void a payment or authorization
+     *
+     * @param string $reference_id The reference ID for the previously submitted transaction
+     * @param string $transaction_id The transaction ID for the previously submitted transaction
+     * @param string $notes Notes about the void that may be sent to the client by the gateway
+     * @return array An array of transaction data including:
+     *
+     *  - status The status of the transaction (approved, declined, void, pending, reconciled, refunded, returned)
+     *  - reference_id The reference ID for gateway-only use with this transaction (optional)
+     *  - transaction_id The ID returned by the remote gateway to identify this transaction
+     *  - message The message to be displayed in the interface in addition to the standard message for
+     *      this transaction status (optional)
+     */
+//    public function void($reference_id, $transaction_id, $notes = null)
+//    {
+//        $api = $this->getApi();
+//
+//        // Attempt to cancel the charge in Wide Pay
+//        // For some reason I am not able to cancel a charge.  The charge used for testing was declined, so it is
+//        // possible that prevents the action from suceeding
+//        $charge_response = $api->cancelCharge($transaction_id);
+//        $response = $charge_response->response();
+//
+//        if ($this->ifSet($response->sucesso)) {
+//            return [
+//                'status' => 'void',
+//                'transaction_id' => $transaction_id,
+//            ];
+//        }
+//    }
+
+    /**
+     * Map the status given by Wide Pay to the equivilent transaction status in Blesta
+     *
+     * @param string $widepay_status The charge status from Wide Pay
+     * @return string The equvilent transaction status in Blesta
+     */
+    private function mapStatus($widepay_status)
+    {
+        $status = 'error';
+        if ($widepay_status) {
+            switch ($widepay_status) {
+                case 'Aguardando':
+                case 'Em análise':
+                    $status = 'pending';
+                    break;
+                case 'Estornado':
+                    $status = 'refunded';
+                    break;
+                case 'Recebido':
+                case 'Recebido manualmente':
+                    $status = 'approved';
+                    break;
+                case 'Recusado':
+                case 'Cancelado':
+                case 'Contestado':
+                    $status = 'declined';
+                    break;
+                case 'Vencido':
+                    $status = 'void';
+                    break;
+            }
+        }
+
+        return $status;
     }
 
     /**

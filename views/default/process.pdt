@@ -1,4 +1,5 @@
     <?php
     $this->Form->create();
-    $this->Form->fieldSubmit('submit_kassacompleet', $this->_('Widepay.buildprocess.submit', true));
+    $this->Form->fieldSelect('charge_type', $this->Html->ifSet($charge_types));
+    $this->Form->fieldSubmit('submit_widepay', $this->_('Widepay.buildprocess.submit', true));
     $this->Form->end();

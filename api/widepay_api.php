@@ -120,6 +120,26 @@ class WidepayApi
     }
 
     /**
+     * Gets an existing Wide Pay charge based on the charge ID
+     *
+     * @param string $charge_id The ID by which to fetch a charge
+     */
+    public function getCharge($charge_id)
+    {
+        return $this->apiRequest('recebimentos/cobrancas/consultar', ['id' => $charge_id], 'POST');
+    }
+
+    /**
+     * Cancels a charge in Wide Pay
+     *
+     * @param string $charge_id The ID of the charge to cancel
+     */
+    public function cancelCharge($charge_id)
+    {
+        return $this->apiRequest('recebimentos/cobrancas/cancelar', ['id' => $charge_id], 'POST');
+    }
+
+    /**
      * Sets the currency code to be used for all subsequent requests
      *
      * @param string $currency The ISO 4217 currency code to be used for subsequent requests
