@@ -182,6 +182,7 @@ class Widepay extends NonmerchantGateway
             $client = $this->Clients->get($contact_info['client_id']);
             $client->fields = $this->Clients->getCustomFieldValues($contact_info['client_id']);
 
+            // Get the entity type and identification number from custom fields
             $cpf_cnpj = '';
             $entity_type = 'Física';
             foreach ($client->fields as $field) {
@@ -199,26 +200,11 @@ class Widepay extends NonmerchantGateway
 
             $client_phone = '';
             foreach ($contact_numbers as $contact_number) {
-                switch ($contact_number->location) {
-                    case 'home':
-                        // Set home phone number
-                        if ($contact_number->type == 'phone') {
-                            $client_phone = $contact_number->number;
-                        }
-                        break;
-                    case 'work':
-                        // Set work phone/fax number
-                        if ($contact_number->type == 'phone') {
-                            $client_phone = $contact_number->number;
-                        }
-                        // No break?
-                    case 'mobile':
-                        // Set mobile phone number
-                        if ($contact_number->type == 'phone') {
-                            $client_phone = $contact_number->number;
-                        }
-                        break;
+                // Set phone number
+                if ($contact_number->type == 'phone') {
+                    $client_phone = $contact_number->number;
                 }
+                break;
             }
 
             if (!empty($client_phone)) {
@@ -231,13 +217,13 @@ class Widepay extends NonmerchantGateway
             // Convert special characters that had been html encoded
             $form_type = isset($_POST['charge_type']) ? html_entity_decode($_POST['charge_type']) : 'Cartão';
             $params = [
-                'forma' => $form_type, // Form type (card or ticket)
+                'forma' => $form_type,
                 'cliente' => $this->Html->concat(
                     ' ',
                     $this->ifSet($contact_info['first_name']),
                     $this->ifSet($contact_info['last_name'])
                 ),
-                'pessoa' => $entity_type, // Check custom fields
+                'pessoa' => $entity_type,
                 'email' => $this->ifSet($client->email),
                 'telefone' => $this->ifSet($client_phone),
                 'itens' => [],
@@ -245,22 +231,23 @@ class Widepay extends NonmerchantGateway
                 'redirecionamento' => $options['return_url'],
             ];
 
+            // Set conditional fields
             if ($form_type == 'Boleto') {
-                $params['vencimento'] = date('Y-m-d H:i:s', strtotime(date('Y-m-d H:i:s') . ' +1 day')); // Figure out what this is
+                $params['vencimento'] = date('Y-m-d H:i:s', strtotime(date('Y-m-d H:i:s') . ' +1 day')); // Double check this value
             }
 
             if ($entity_type == 'Física') {
-                $params['cpf'] = $cpf_cnpj; // Check custom fields
+                $params['cpf'] = $cpf_cnpj;
             } else {
-                $params['cnpj'] = $cpf_cnpj; // Check custom fields
+                $params['cnpj'] = $cpf_cnpj;
             }
 
             // Set all invoices to pay
             if (isset($invoice_amounts) && is_array($invoice_amounts)) {
                 foreach ($invoice_amounts as $invoice) {
                     $params['itens'][] = [
-                        'descricao' => $invoice['id'], // Description
-                        'valor' => $invoice['amount'], // Value
+                        'descricao' => $invoice['id'],
+                        'valor' => $invoice['amount'],
                     ];
                 }
             }
@@ -356,7 +343,7 @@ class Widepay extends NonmerchantGateway
         }
 
         return [
-            'client_id' => $get['client_id'],
+            'client_id' => $this->ifSet($get['client_id']),
             'amount' => $this->ifSet($response->cobranca->valor, 0),
             'currency' => 'BRL',
             'status' => $status,
@@ -387,9 +374,6 @@ class Widepay extends NonmerchantGateway
     {
         $api = $this->getApi();
 
-        // Get client id
-        $client_id = $this->ifSet($get['client_id']);
-
         $this->log($this->ifSet($_SERVER['REQUEST_URI']), [], 'input', true);
 
         // Get the charge information from Wide Pay
@@ -399,7 +383,7 @@ class Widepay extends NonmerchantGateway
         $this->log($this->ifSet($_SERVER['REQUEST_URI']), $charge_response->raw(), 'output', true);
 
         return [
-            'client_id' => $client_id,
+            'client_id' => $this->ifSet($get['client_id']),
             'amount' => $this->ifSet($response->cobrancas[0]->valor),
             'currency' => 'BRL',
             'status' => $this->mapStatus($response->cobrancas[0]->status),
