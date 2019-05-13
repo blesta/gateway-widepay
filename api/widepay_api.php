@@ -47,7 +47,7 @@ class WidepayApi
      * @param string $route The path to the API method
      * @param array $body The data to be sent
      * @param string $method Data transfer method (POST, GET, PUT, DELETE)
-     * @return array
+     * @return WidepayResponse
      */
     private function apiRequest($route, array $body, $method)
     {
@@ -103,6 +103,7 @@ class WidepayApi
      * Creates a charge in Wide Pay
      *
      * @param array $params A list of parameters for creating a charge
+     * @return WidepayResponse
      */
     public function createCharge($params)
     {
@@ -113,6 +114,7 @@ class WidepayApi
      * Gets an existing Wide Pay charge based on the notification ID
      *
      * @param string $notification_id The ID by which to fetch a charge
+     * @return WidepayResponse
      */
     public function getNotificationCharge($notification_id)
     {
@@ -123,6 +125,7 @@ class WidepayApi
      * Gets an existing Wide Pay charge based on the charge ID
      *
      * @param string $charge_id The ID by which to fetch a charge
+     * @return WidepayResponse
      */
     public function getCharge($charge_id)
     {
@@ -133,6 +136,7 @@ class WidepayApi
      * Cancels a charge in Wide Pay
      *
      * @param string $charge_id The ID of the charge to cancel
+     * @return WidepayResponse
      */
     public function cancelCharge($charge_id)
     {

@@ -1,5 +1,4 @@
 <?php
-
 class WidepayResponse
 {
     private $status;
@@ -78,7 +77,7 @@ class WidepayResponse
     /**
      * Get the headers returned with this response
      *
-     * @return string The headers returned with this response
+     * @return array The headers returned with this response
      */
     public function headers()
     {
