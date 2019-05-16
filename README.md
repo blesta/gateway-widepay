@@ -26,4 +26,8 @@ your Blesta installation path.
 
 4. Find the Wide Pay gateway and click the "Install" button to install it
 
-5. You're done!
+5. Set wallet ID and token
+
+6. Set up custom client field (see https://docs.blesta.com/display/user/Wide+Pay)
+
+7. You're done!

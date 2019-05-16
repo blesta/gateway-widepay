@@ -72,9 +72,9 @@ class WidepayApi
         curl_setopt($curl, CURLOPT_URL, $url);
         curl_setopt($curl, CURLOPT_USERPWD, $this->walletId . ':' . $this->walletToken);
         curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 30);
-        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, 0);
-        curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 0);
-        curl_setopt($curl, CURLOPT_SSLVERSION, 0);
+        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, 1);
+        curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 2);
+        curl_setopt($curl, CURLOPT_SSLVERSION, 1);
 
         $headers = [];
         $headers[] = 'WP-API: SDK-PHP';
@@ -89,7 +89,7 @@ class WidepayApi
                 'status' => 500
             ];
 
-            return new WidepayResponse(['content' => json_encode($error)]);
+            return new WidepayResponse(['content' => json_encode($error), 'headers' => []]);
         }
         curl_close($curl);
 
@@ -105,7 +105,7 @@ class WidepayApi
      * @param array $params A list of parameters for creating a charge
      * @return WidepayResponse
      */
-    public function createCharge($params)
+    public function createCharge(array $params)
     {
         return $this->apiRequest('recebimentos/cobrancas/adicionar', $params, 'POST');
     }
@@ -151,20 +151,5 @@ class WidepayApi
     public function setCurrency($currency)
     {
         $this->currency = $currency;
-    }
-
-    /**
-     * Returns $value if $value isset, otherwise returns $alt
-     *
-     * @param mixed $value The value to return if $value isset
-     * @param mixed $alt The value to return if $value is not set
-     * @return mixed Either $value or $alt
-     */
-    protected function ifSet(&$value, $alt = null)
-    {
-        if (isset($value)) {
-            return $value;
-        }
-        return $alt;
     }
 }

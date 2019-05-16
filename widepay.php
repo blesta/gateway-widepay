@@ -18,7 +18,7 @@ class Widepay extends NonmerchantGateway
     private $meta;
 
     /**
-     * Construct a new merchant gateway
+     * Construct a new nonmerchant gateway
      */
     public function __construct()
     {
@@ -215,7 +215,7 @@ class Widepay extends NonmerchantGateway
             $notification_url = Configure::get('Blesta.gw_callback_url') . Configure::get('Blesta.company_id')
                 . '/widepay/?client_id=' . $contact_info['client_id'];
             // Convert special characters that had been html encoded
-            $form_type = isset($_POST['charge_type']) ? html_entity_decode($_POST['charge_type']) : 'Cartão';
+            $form_type = isset($_POST['submit_widepay_ticket']) ? 'Boleto' : 'Cartão';
             $params = [
                 'forma' => $form_type,
                 'cliente' => $this->Html->concat(
@@ -233,7 +233,7 @@ class Widepay extends NonmerchantGateway
 
             // Set conditional fields
             if ($form_type == 'Boleto') {
-                $params['vencimento'] = date('Y-m-d H:i:s', strtotime(date('Y-m-d H:i:s') . ' +1 day')); // Double check this value
+                $params['vencimento'] = date('Y-m-d H:i:s', strtotime(date('Y-m-d H:i:s') . ' +1 day'));
             }
 
             if ($entity_type == 'Física') {
@@ -270,8 +270,6 @@ class Widepay extends NonmerchantGateway
                 $this->Input->setErrors(
                     ['api' => ['response' => $request->errors()]]
                 );
-
-                return null;
             }
         }
 

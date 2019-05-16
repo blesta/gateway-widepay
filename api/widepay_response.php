@@ -55,9 +55,9 @@ class WidepayResponse
     }
 
     /**
-     * Get the data response from this response
+     * Get the formatted data from this response
      *
-     * @return string The data response from this response
+     * @return string The formatted data from this response
      */
     public function response()
     {
