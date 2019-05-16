@@ -268,7 +268,7 @@ class Widepay extends NonmerchantGateway
                 // The api has been responded with an error, set the error
                 $this->log($this->ifSet($_SERVER['REQUEST_URI']), $request->raw(), 'output', false);
                 $this->Input->setErrors(
-                    ['api' => ['response' => $request->errors()]]
+                    ['api' => $request->errors()]
                 );
             }
         }

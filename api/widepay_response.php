@@ -26,12 +26,14 @@ class WidepayResponse
             }
         }
 
-        $this->errors = isset($this->response->errors)
-            ? $this->response->errors
-            : (isset($this->response->error)
-                ? [$this->response->error]
-                : []
-            );
+        $this->errors =  [];
+        if (isset($this->response->errors)) {
+            foreach ($this->response->errors as $error) {
+                $this->errors[] = $error->msg;
+            }
+        } elseif (isset($this->response->error)) {
+            $this->errors = [$this->response->error];
+        }
     }
 
     /**
