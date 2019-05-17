@@ -233,7 +233,7 @@ class Widepay extends NonmerchantGateway
 
             // Set conditional fields
             if ($form_type == 'Boleto') {
-                $params['vencimento'] = date('Y-m-d H:i:s', strtotime(date('Y-m-d H:i:s') . ' +1 day'));
+                $params['vencimento'] = date('Y-m-d H:i:s', strtotime(date('Y-m-d H:i:s') . ' +3 days'));
             }
 
             if ($entity_type == 'Física') {
