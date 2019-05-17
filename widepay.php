@@ -91,6 +91,10 @@ class Widepay extends NonmerchantGateway
         ];
         $this->Input->setRules($rules);
 
+        if (!isset($meta['allow_card_payment'])) {
+            $meta['allow_card_payment'] = 'false';
+        }
+
         // Validate the given meta data to ensure it meets the requirements
         $this->Input->validates($meta);
 
@@ -256,7 +260,6 @@ class Widepay extends NonmerchantGateway
                 }
 
                 if (isset($earliest_invoice_date) && $form_type == 'Boleto') {
-                    // It is possible this should be based on the earliest invoce date instead of the current date
                     $params['vencimento'] = date('Y-m-d H:i:s', strtotime($earliest_invoice_date . 'Z +3 days'));
                 }
             }
@@ -294,13 +297,7 @@ class Widepay extends NonmerchantGateway
     private function buildForm()
     {
         $this->view = $this->makeView('process', 'default', str_replace(ROOTWEBDIR, '', dirname(__FILE__) . DS));
-        $this->view->set(
-            'charge_types',
-            [
-                'Boleto' => Language::_('Widepay.charge_types.ticket', true),
-                'Cartão' => Language::_('Widepay.charge_types.card', true)
-            ]
-        );
+        $this->view->set('allow_card_payment', $this->ifSet($this->meta['allow_card_payment'], 'true'));
 
         // Load the helpers required for this view
         Loader::loadHelpers($this, ['Form', 'Html']);

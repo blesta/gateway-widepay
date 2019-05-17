@@ -2,6 +2,7 @@
 $lang['Widepay.name'] = 'Wide Pay';
 $lang['Widepay.wallet_id'] = 'Wallet ID';
 $lang['Widepay.wallet_token'] = 'Wallet Token';
+$lang['Widepay.allow_card_payment'] = 'Allow Card Payments';
 
 $lang['Widepay.!error.wallet_id.format'] = 'Please enter a wallet ID';
 $lang['Widepay.!error.wallet_token.format'] = 'Please enter a wallet API token';
