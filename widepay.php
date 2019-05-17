@@ -170,7 +170,7 @@ class Widepay extends NonmerchantGateway
 
         if (!empty($_POST)) {
             // Load the models required
-            Loader::loadModels($this, ['Contacts']);
+            Loader::loadModels($this, ['Contacts', 'Invoices']);
 
             // Load library methods
             $api = $this->getApi();
@@ -232,10 +232,6 @@ class Widepay extends NonmerchantGateway
             ];
 
             // Set conditional fields
-            if ($form_type == 'Boleto') {
-                $params['vencimento'] = date('Y-m-d H:i:s', strtotime(date('Y-m-d H:i:s') . ' +3 days'));
-            }
-
             if ($entity_type == 'Física') {
                 $params['cpf'] = $cpf_cnpj;
             } else {
@@ -243,12 +239,25 @@ class Widepay extends NonmerchantGateway
             }
 
             // Set all invoices to pay
-            if (isset($invoice_amounts) && is_array($invoice_amounts)) {
-                foreach ($invoice_amounts as $invoice) {
+            if (!empty($invoice_amounts) && is_array($invoice_amounts)) {
+                $earliest_invoice_date = null;
+                foreach ($invoice_amounts as $invoice_amount) {
                     $params['itens'][] = [
-                        'descricao' => $invoice['id'],
-                        'valor' => $invoice['amount'],
+                        'descricao' => $invoice_amount['id'],
+                        'valor' => $invoice_amount['amount'],
                     ];
+
+                    $invoice = $this->Invoices->get($invoice_amount['id']);
+                    if (!isset($earliest_invoice_date)
+                        || strtotime($invoice->date_due) < strtotime($earliest_invoice_date)
+                    ) {
+                        $earliest_invoice_date = $invoice->date_due;
+                    }
+                }
+
+                if (isset($earliest_invoice_date) && $form_type == 'Boleto') {
+                    // It is possible this should be based on the earliest invoce date instead of the current date
+                    $params['vencimento'] = date('Y-m-d H:i:s', strtotime($earliest_invoice_date . 'Z +3 days'));
                 }
             }
 
