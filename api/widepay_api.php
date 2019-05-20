@@ -24,10 +24,6 @@ class WidepayApi
      * @var string The Widepay wallet token
      */
     private $walletToken;
-    /**
-     * @var string The currency to use
-     */
-    private $currency;
 
     /**
      * Initializes the request parameter
@@ -55,12 +51,14 @@ class WidepayApi
         $curl = curl_init();
 
         switch (strtoupper($method)) {
-            case 'GET':
             case 'DELETE':
+                // Set data using get parameters
+            case 'GET':
                 $url .= empty($body) ? '' : '?' . http_build_query($body);
                 break;
             case 'POST':
                 curl_setopt($curl, CURLOPT_POST, 1);
+                // Use the default behavior to set data fields
             default:
                 curl_setopt($curl, CURLOPT_POSTFIELDS, http_build_query($body));
                 break;
@@ -141,15 +139,5 @@ class WidepayApi
     public function cancelCharge($charge_id)
     {
         return $this->apiRequest('recebimentos/cobrancas/cancelar', ['id' => $charge_id], 'POST');
-    }
-
-    /**
-     * Sets the currency code to be used for all subsequent requests
-     *
-     * @param string $currency The ISO 4217 currency code to be used for subsequent requests
-     */
-    public function setCurrency($currency)
-    {
-        $this->currency = $currency;
     }
 }
