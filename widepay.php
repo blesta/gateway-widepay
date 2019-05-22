@@ -57,7 +57,7 @@ class Widepay extends NonmerchantGateway
         $this->view = $this->makeView(
             'settings',
             'default',
-            'components' . DS . 'gateways' . DS . 'nonmerchant' . DS . 'widepay' . DS
+            str_replace(ROOTWEBDIR, '', dirname(__FILE__) . DS)
         );
 
         // Load the helpers required for this view
