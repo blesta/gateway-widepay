@@ -54,8 +54,11 @@ class Widepay extends NonmerchantGateway
     public function getSettings(array $meta = null)
     {
         // Load the view into this object, so helpers can be automatically add to the view
-        $this->view = new View('settings', 'default');
-        $this->view->setDefaultView('components' . DS . 'gateways' . DS . 'nonmerchant' . DS . 'widepay' . DS);
+        $this->view = $this->makeView(
+            'settings',
+            'default',
+            str_replace(ROOTWEBDIR, '', dirname(__FILE__) . DS)
+        );
 
         // Load the helpers required for this view
         Loader::loadHelpers($this, ['Form', 'Html']);
@@ -122,11 +125,11 @@ class Widepay extends NonmerchantGateway
         $this->currency = $currency;
     }
 
-
     /**
      * Returns all HTML markup required to render an authorization and capture payment form.
      *
      * @param array $contact_info An array of contact info including:
+     *
      *  - id The contact ID
      *  - client_id The ID of the client this contact belongs to
      *  - user_id The user ID this contact belongs to (if any)
@@ -150,9 +153,11 @@ class Widepay extends NonmerchantGateway
      *  - zip The zip/postal code of the contact
      * @param float $amount The amount to charge this contact
      * @param array $invoice_amounts An array of invoices, each containing:
+     *
      *  - id The ID of the invoice being processed
      *  - amount The amount being processed for this invoice (which is included in $amount)
      * @param array $options An array of options including:
+     *
      *  - description The Description of the charge
      *  - return_url The URL to redirect users to after a successful payment
      *  - recur An array of recurring info including:
@@ -183,7 +188,7 @@ class Widepay extends NonmerchantGateway
             $amount = number_format($amount, 2, '.', '');
 
             // Get client data
-            $client = $this->Clients->get($contact_info['client_id']);
+            $client = $this->Clients->get($contact_info['client_id'], false);
             $client->fields = $this->Clients->getCustomFieldValues($contact_info['client_id']);
 
             // Get the entity type and identification number from custom fields
@@ -207,8 +212,8 @@ class Widepay extends NonmerchantGateway
                 // Set phone number
                 if ($contact_number->type == 'phone') {
                     $client_phone = $contact_number->number;
+                    break;
                 }
-                break;
             }
 
             if (!empty($client_phone)) {
@@ -251,11 +256,13 @@ class Widepay extends NonmerchantGateway
                         'valor' => $invoice_amount['amount'],
                     ];
 
-                    $invoice = $this->Invoices->get($invoice_amount['id']);
-                    if (!isset($earliest_invoice_date)
-                        || strtotime($invoice->date_due) < strtotime($earliest_invoice_date)
-                    ) {
-                        $earliest_invoice_date = $invoice->date_due;
+                    if ($form_type == 'Boleto') {
+                        $invoice = $this->Invoices->get($invoice_amount['id']);
+                        if (!isset($earliest_invoice_date)
+                            || strtotime($invoice->date_due) < strtotime($earliest_invoice_date)
+                        ) {
+                            $earliest_invoice_date = $invoice->date_due;
+                        }
                     }
                 }
 
@@ -312,6 +319,7 @@ class Widepay extends NonmerchantGateway
      * @param array $get The GET data for this request
      * @param array $post The POST data for this request
      * @return array An array of transaction data, sets any errors using Input if the data fails to validate
+     *
      *  - client_id The ID of the client that attempted the payment
      *  - amount The amount of the payment
      *  - currency The currency of the payment
@@ -364,6 +372,7 @@ class Widepay extends NonmerchantGateway
      * @param array $get The GET data for this request
      * @param array $post The POST data for this request
      * @return array An array of transaction data, may set errors using Input if the data appears invalid
+     *
      *  - client_id The ID of the client that attempted the payment
      *  - amount The amount of the payment
      *  - currency The currency of the payment
@@ -470,6 +479,7 @@ class Widepay extends NonmerchantGateway
      *
      * @param array $items A list of items from Wide Pay
      * @return array A numerically indexed array invoices info including:
+     *
      *  - id The ID of the invoice
      *  - amount The amount relating to the invoice
      */
@@ -504,12 +514,7 @@ class Widepay extends NonmerchantGateway
      */
     private function redirectToUrl($url)
     {
-        try {
-            header('Location: ' . $url);
-
-            return true;
-        } catch (Exception $e) {
-            return false;
-        }
+        header('Location: ' . $url);
+        exit();
     }
 }

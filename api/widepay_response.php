@@ -1,10 +1,38 @@
 <?php
+/**
+ * Wide Pay API Response
+ *
+ * @package blesta
+ * @subpackage blesta.components.gateways.widepay.apis
+ * @copyright Copyright (c) 2019, Phillips Data, Inc.
+ * @license http://www.blesta.com/license/ The Blesta License Agreement
+ * @link http://www.blesta.com/ Blesta
+ */
 class WidepayResponse
 {
+    /**
+     * @var string The status code of this response
+     */
     private $status;
+
+    /**
+     * @var string The raw data from this response
+     */
     private $raw;
+
+    /**
+     * @var stdClass The formatted data from this response
+     */
     private $response;
+
+    /**
+     * @var array A list of errors from the response data
+     */
     private $errors;
+
+    /**
+     * @var array A list of headers from this response
+     */
     private $headers;
 
     /**
