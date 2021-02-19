@@ -229,14 +229,14 @@ class Widepay extends NonmerchantGateway
                 'forma' => $form_type,
                 'cliente' => $this->Html->concat(
                     ' ',
-                    $this->ifSet($contact_info['first_name']),
-                    $this->ifSet($contact_info['last_name'])
+                    (isset($contact_info['first_name']) ? $contact_info['first_name'] : null),
+                    (isset($contact_info['last_name']) ? $contact_info['last_name'] : null)
                 ),
                 'pessoa' => $entity_type,
-                'email' => $this->ifSet($client->email),
-                'telefone' => $this->ifSet($client_phone),
+                'email' => (isset($client->email) ? $client->email : null),
+                'telefone' => (isset($client_phone) ? $client_phone : null),
                 'itens' => [],
-                'notificacao' => $this->ifSet($notification_url),
+                'notificacao' => (isset($notification_url) ? $notification_url : null),
                 'redirecionamento' => $options['return_url'],
             ];
 
@@ -271,13 +271,13 @@ class Widepay extends NonmerchantGateway
                 }
             }
 
-            $this->log($this->ifSet($_SERVER['REQUEST_URI']), json_encode($params), 'input', true);
+            $this->log((isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : null), json_encode($params), 'input', true);
 
             // Send the request to the api
             $request = $api->createCharge($params);
             $errors = $request->errors();
             if (empty($errors)) {
-                $this->log($this->ifSet($_SERVER['REQUEST_URI']), $request->raw(), 'output', true);
+                $this->log((isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : null), $request->raw(), 'output', true);
 
                 $charge_response = $request->response();
 
@@ -285,7 +285,7 @@ class Widepay extends NonmerchantGateway
                 $this->redirectToUrl($charge_response->link);
             } else {
                 // The api has been responded with an error, set the error
-                $this->log($this->ifSet($_SERVER['REQUEST_URI']), $request->raw(), 'output', false);
+                $this->log((isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : null), $request->raw(), 'output', false);
                 $this->Input->setErrors(
                     ['api' => $request->errors()]
                 );
@@ -304,7 +304,7 @@ class Widepay extends NonmerchantGateway
     private function buildForm()
     {
         $this->view = $this->makeView('process', 'default', str_replace(ROOTWEBDIR, '', dirname(__FILE__) . DS));
-        $this->view->set('allow_card_payment', $this->ifSet($this->meta['allow_card_payment'], 'true'));
+        $this->view->set('allow_card_payment', (isset($this->meta['allow_card_payment']) ? $this->meta['allow_card_payment'] : 'true'));
 
         // Load the helpers required for this view
         Loader::loadHelpers($this, ['Form', 'Html']);
@@ -337,31 +337,31 @@ class Widepay extends NonmerchantGateway
         $api = $this->getApi();
 
         // The api has been responded with an error, set the error
-        $this->log($this->ifSet($_SERVER['REQUEST_URI']), json_encode($post), 'input', true);
+        $this->log((isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : null), json_encode($post), 'input', true);
 
         // Get the charge details from Wide Pay
         $charge_response = $api->getNotificationCharge(isset($post['notificacao']) ? $post['notificacao'] : '');
 
         // Log the Wide Pay response
         $errors = $charge_response->errors();
-        $this->log($this->ifSet($_SERVER['REQUEST_URI']), $charge_response->raw(), 'output', empty($errors));
+        $this->log((isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : null), $charge_response->raw(), 'output', empty($errors));
 
         $response = $charge_response->response();
 
         // Get the status of the charge
         $status = empty($errors) ? 'approved' : 'error';
-        if ($this->ifSet($response->cobranca->status)) {
+        if ((isset($response->cobranca->status) ? $response->cobranca->status : null)) {
             $status = $this->mapStatus($response->cobranca->status);
         }
 
         return [
-            'client_id' => $this->ifSet($get['client_id']),
-            'amount' => $this->ifSet($response->cobranca->valor, 0),
+            'client_id' => (isset($get['client_id']) ? $get['client_id'] : null),
+            'amount' => (isset($response->cobranca->valor) ? $response->cobranca->valor : 0),
             'currency' => 'BRL',
             'status' => $status,
             'reference_id' => null,
-            'transaction_id' => $this->ifSet($response->cobranca->id),
-            'invoices' => $this->unserializeInvoices($this->ifSet($response->cobranca->itens, []))
+            'transaction_id' => (isset($response->cobranca->id) ? $response->cobranca->id : null),
+            'invoices' => $this->unserializeInvoices((isset($response->cobranca->itens) ? $response->cobranca->itens : []))
         ];
     }
 
@@ -387,22 +387,22 @@ class Widepay extends NonmerchantGateway
     {
         $api = $this->getApi();
 
-        $this->log($this->ifSet($_SERVER['REQUEST_URI']), [], 'input', true);
+        $this->log((isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : null), [], 'input', true);
 
         // Get the charge information from Wide Pay
-        $charge_response = $api->getCharge($this->ifSet($get['cobranca']));
+        $charge_response = $api->getCharge((isset($get['cobranca']) ? $get['cobranca'] : null));
         $response = $charge_response->response();
 
-        $this->log($this->ifSet($_SERVER['REQUEST_URI']), $charge_response->raw(), 'output', true);
+        $this->log((isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : null), $charge_response->raw(), 'output', true);
 
         return [
-            'client_id' => $this->ifSet($get['client_id']),
-            'amount' => $this->ifSet($response->cobrancas[0]->valor),
+            'client_id' => (isset($get['client_id']) ? $get['client_id'] : null),
+            'amount' => (isset($response->cobrancas[0]->valor) ? $response->cobrancas[0]->valor : null),
             'currency' => 'BRL',
             'status' => $this->mapStatus($response->cobrancas[0]->status),
             'reference_id' => null,
-            'transaction_id' => $this->ifSet($get['cobranca']),
-            'invoices' => $this->unserializeInvoices($this->ifSet($response->cobrancas[0]->itens, []))
+            'transaction_id' => (isset($get['cobranca']) ? $get['cobranca'] : null),
+            'invoices' => $this->unserializeInvoices((isset($response->cobrancas[0]->itens) ? $response->cobrancas[0]->itens : []))
         ];
     }
 
@@ -430,7 +430,7 @@ class Widepay extends NonmerchantGateway
 //        $charge_response = $api->cancelCharge($transaction_id);
 //        $response = $charge_response->response();
 //
-//        if ($this->ifSet($response->sucesso)) {
+//        if ((isset($response->sucesso) ? $response->sucesso : null)) {
 //            return [
 //                'status' => 'void',
 //                'transaction_id' => $transaction_id,
