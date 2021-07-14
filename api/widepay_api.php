@@ -1,4 +1,6 @@
 <?php
+use Blesta\Core\Util\Common\Traits\Container;
+
 require_once dirname(__FILE__) . DIRECTORY_SEPARATOR . 'widepay_response.php';
 
 /**
@@ -12,6 +14,9 @@ require_once dirname(__FILE__) . DIRECTORY_SEPARATOR . 'widepay_response.php';
  */
 class WidepayApi
 {
+    // Load traits
+    use Container;
+
     /**
      * @var string The API URL
      */
@@ -35,6 +40,10 @@ class WidepayApi
     {
         $this->walletId = $walletId;
         $this->walletToken = $walletToken;
+
+        // Initialize logger
+        $logger = $this->getFromContainer('logger');
+        $this->logger = $logger;
     }
 
     /**
@@ -70,9 +79,15 @@ class WidepayApi
         curl_setopt($curl, CURLOPT_URL, $url);
         curl_setopt($curl, CURLOPT_USERPWD, $this->walletId . ':' . $this->walletToken);
         curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 30);
-        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, 1);
-        curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 2);
         curl_setopt($curl, CURLOPT_SSLVERSION, 1);
+
+        if (Configure::get('Blesta.curl_verify_ssl')) {
+            curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, true);
+            curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, true);
+        } else {
+            curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
+        }
 
         $headers = [];
         $headers[] = 'WP-API: SDK-PHP';
@@ -80,7 +95,10 @@ class WidepayApi
 
         $this->lastRequest = ['content' => $body, 'headers' => $headers];
         $result = curl_exec($curl);
+
         if (curl_errno($curl)) {
+            $this->logger->error(curl_error($curl));
+
             $error = [
                 'error' => 'Curl Error',
                 'message' => 'An internal error occurred, or the server did not respond to the request.',
